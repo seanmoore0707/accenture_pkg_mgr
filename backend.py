@@ -21,8 +21,7 @@ class SelectForm(FlaskForm):
                                 choices=[('94e814e2efa8', 'Ubuntu'), ('d8233ab899d4', 'BusyBox'), ('fce289e99eb9', "Hello World")],
                                 validators=[DataRequired()])
     submit = SubmitField('Submit')
-    client = docker.from_env()
-    client = docker.DockerClient(base_url='tcp://127.0.0.1:1234')
+    client = docker.APIClient(base_url='unix://var/run/docker.sock')
 
     @app.errorhandler(404)
     def page_not_found(e):
