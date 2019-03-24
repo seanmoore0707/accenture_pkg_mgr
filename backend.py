@@ -1,5 +1,5 @@
 from flask import Flask, render_template, session, redirect, url_for, flash, send_file, send_from_directory
-from flask_bootstrap import Bootstrap
+from flask_s3 import FlaskS3
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField, SelectMultipleField
 from flask_wtf import FlaskForm
 from wtforms.validators import DataRequired
@@ -9,15 +9,9 @@ import shutil
 import os
 
 
-
-# Uses wtfforms, bootstrap, jinja
-# pip install flask
-# pip install flask-wtf
-# pip install flask-bootstrap
-
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'rb4(X~f`Y%#"bF8P'
-bootstrap = Bootstrap(app)
+app.config['FLASKS3_BUCKET_NAME'] = 'mybucketname'
+s3 = FlaskS3(app)
 
 class SelectForm(FlaskForm):
     # Choices are in (value, key) pairs, ideally value would Image ID and key would be Name
@@ -114,8 +108,8 @@ class SelectForm(FlaskForm):
     @app.route('/download', methods=['GET', 'POST'])
     def get_input_list():
         if 'apps' in request.args:
-            files = self.download(request.args['apps'])
-            return files
+            urls = flask_s3.url_for('download', apps = request.args['apps'])
+            return urls
         else:
             return "Empty or Wrong apps list"
 
