@@ -4,6 +4,10 @@ from wtforms import Form, TextField, TextAreaField, validators, StringField, Sub
 from flask_wtf import FlaskForm
 from wtforms.validators import DataRequired
 import docker
+import gzip
+import shutil
+import os
+
 
 
 # Uses wtfforms, bootstrap, jinja
@@ -44,20 +48,63 @@ class SelectForm(FlaskForm):
         return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
     @app.route('/download', methods=['GET', 'POST'])
+
     def download(self,apps, glassory):
     # Modified by Haonan Chen
-    # Date: 19.03.2019
+    # Date: 24.03.2019
     # Change the download() method in a more reasonable way
     # @param apps: a list of app names
     # @param glassory: a dictionary of app v.s. image as parameters
     # Each app in the list or the (key, value) in glassory are stored as string
     # Each name of image in the form: (respository : tag)
-        images=[]
+        imagesDownloaded=[]
+        root_directory = '/download'
+        dirctory = '/download/clientImages.tar'
+        filename = 'clientImages.tar'
+
+        tarfile = open(dirctory, 'wb')
         for app in apps:
-            imgs = glassory[app]
-            for img in imgs:
-                if img not in images:
-                    images.append(img)
-                    strs = img.split(":")
-                    self.client.images.pull(strs[0], tag=strs[1])
+            images = glassory[app]
+            for image in images:
+                if image not in images:
+                    images.append(image)
+                    strs = image.split(":")
+                    self.client.pull(strs[0], tag=strs[1])
+
+                # we can use get_image directly to get the image with a specific version
+                tarball = self.client.get_image(image)
+
+                for chunk in tarball:
+
+                    tarfile.write(chunk)
+
+
+        tarfile.close()
+
+        # Modified From version of Jackson Qiu
+        # Convert from tar file to gzip file with a smaller size
+        
+        with open (directory, 'rb') as f_in, gzip.open(directory+'.gz', 'wb') as f_out:
+
+            shutil.copyfileobj(f_in, f_out)
+
+        
+
+        f_in.close()
+        f_out.close()
+
+        # a secure way to quickly expose static files from an upload folder or something similar.
+        # more efficient than send_file()
+        attachment = send_from_directory(root_directory,
+                               filename+'.gz', as_attachment=True)
+    
+        # Ensures that existings tar files do not get lumped into new download request
+        # os.remove should be compatible with all OS
+        os.remdir(directory)
+        os.remdir(directory+'.gz')
+
+
+        return attachment
+
+
 
