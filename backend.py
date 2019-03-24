@@ -26,6 +26,8 @@ class SelectForm(FlaskForm):
                                 validators=[DataRequired()])
     submit = SubmitField('Submit')
     client = docker.APIClient(base_url='unix://var/run/docker.sock')
+    imagesDownloaded=[]
+    dictionary = {}
 
     @app.errorhandler(404)
     def page_not_found(e):
@@ -49,7 +51,7 @@ class SelectForm(FlaskForm):
 
     @app.route('/download', methods=['GET', 'POST'])
 
-    def download(self,apps, glassory):
+    def download(self,apps, glassory = self.dictionary):
     # Modified by Haonan Chen
     # Date: 24.03.2019
     # Change the download() method in a more reasonable way
@@ -57,7 +59,7 @@ class SelectForm(FlaskForm):
     # @param glassory: a dictionary of app v.s. image as parameters
     # Each app in the list or the (key, value) in glassory are stored as string
     # Each name of image in the form: (respository : tag)
-        imagesDownloaded=[]
+        
         root_directory = '/download'
         dirctory = '/download/clientImages.tar'
         filename = 'clientImages.tar'
@@ -66,8 +68,8 @@ class SelectForm(FlaskForm):
         for app in apps:
             images = glassory[app]
             for image in images:
-                if image not in images:
-                    images.append(image)
+                if image not in self.imagesDownloaded:
+                    self.imagesDownloaded.append(image)
                     strs = image.split(":")
                     self.client.pull(strs[0], tag=strs[1])
 
@@ -105,6 +107,17 @@ class SelectForm(FlaskForm):
 
 
         return attachment
+    
+    # Created by Haonan Chen
+    # Date: 24.03.2019
+    # A prototype of REST Web API for transfer the apps list input from frontend to backend
+    @app.route('/download', methods=['GET', 'POST'])
+    def get_input_list():
+        if 'apps' in request.args:
+            files = self.download(request.args['apps'])
+            return files
+        else:
+            return "Empty or Wrong apps list"
 
 
 
