@@ -25,7 +25,12 @@ client = from_env()
 
 # Dictionary that maps the name of the app (key) to a list of required images' names (value)
 # Customise for each use case
-dictionary =  { 'Alpine' : ['alpine:3.9.2'] }
+dictionary =  { 'app1' : ['alpine:3.9.2'], 
+                'app2' : ['alpine:3.9'], 
+                'app3' : ['alpine:3.8.4'], 
+                'app4' : ['alpine:3.7.3'], 
+                'app5' : ['alpine:3.6.5'],
+                'app6' : ['alpine:3.6'] }
 imagesDownloaded=[]
 client = docker.APIClient(base_url='unix://var/run/docker.sock')
 
@@ -33,7 +38,7 @@ client = docker.APIClient(base_url='unix://var/run/docker.sock')
 class SelectForm(FlaskForm):
     # Choices are in (value, key) pairs, ideally value would Image ID and key would be Name
     filesToDownload = SelectMultipleField("Choose docker images to download",
-                                choices=choices,
+                                choices=[app1, app2, app3, app4, app5, app6],
                                 validators=[DataRequired()])
     submit = SubmitField('Submit')
 
@@ -58,7 +63,7 @@ def index():
     return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
 @app.route('/download', methods=['GET', 'POST'])
-def download(apps, glassory = dictionary):
+def download(apps = session.get('filesToDownload'), glassory = dictionary):
     # Gets data from selectForm and grabs corresponding image objects into a list
     # filesToDownload is a list of strings of image ids
     root_directory = '/download'
