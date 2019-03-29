@@ -1,117 +1,112 @@
 from flask import Flask, render_template, session, redirect, url_for, flash, send_file, send_from_directory
-from flask_s3 import FlaskS3
+from flask_bootstrap import Bootstrap
 from wtforms import Form, TextField, TextAreaField, validators, StringField, SubmitField, SelectMultipleField
 from flask_wtf import FlaskForm
 from wtforms.validators import DataRequired
-import docker
+import os
+from subprocess import call
+from docker import *
+import tarfile
 import gzip
 import shutil
-import os
 
+# Uses wtfforms, bootstrap, jinja
+# python3 -m venv venv
+# source venv/bin/activate
+# pip install flask
+# pip install flask-wtf
+# pip install flask-bootstrap
+# pip install docker
 
 app = Flask(__name__)
-app.config['FLASKS3_BUCKET_NAME'] = 'mybucketname'
-s3 = FlaskS3(app)
+app.config['SECRET_KEY'] = 'rb4(X~f`Y%#"bF8P'
+bootstrap = Bootstrap(app)
+client = from_env()
+
+# Dictionary that maps the name of the app (key) to a list of required images' names (value)
+# Customise for each use case
+dictionary =  { 'Alpine' : ['alpine:3.9.2'] }
+imagesDownloaded=[]
+client = docker.APIClient(base_url='unix://var/run/docker.sock')
+
 
 class SelectForm(FlaskForm):
     # Choices are in (value, key) pairs, ideally value would Image ID and key would be Name
     filesToDownload = SelectMultipleField("Choose docker images to download",
-                                choices=[('94e814e2efa8', 'Ubuntu'), ('d8233ab899d4', 'BusyBox'), ('fce289e99eb9', "Hello World")],
+                                choices=choices,
                                 validators=[DataRequired()])
     submit = SubmitField('Submit')
-    client = docker.APIClient(base_url='unix://var/run/docker.sock')
-    imagesDownloaded=[]
-    dictionary = {}
 
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return render_template('404.html'), 404
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 
-    @app.errorhandler(500)
-    def internal_server_error(e):
-        return render_template('500.html'), 500
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
 
-    @app.route('/', methods=['GET', 'POST'])
-    def index(self):
+@app.route('/', methods=['GET', 'POST'])
+def index():
     # Need to change session context into another context, annoying to keep data after webpage/server refresh/restart
-        form = SelectForm()
-        if form.validate_on_submit():
-            session['filesToDownload'] = form.filesToDownload.data
+    form = SelectForm()
+    if form.validate_on_submit():
+        session['filesToDownload'] = form.filesToDownload.data
         # Bug: Flash not displaying as wanted, currently only displaying after refresh
-            flash("Download will commence shortly")
-            return redirect(url_for('download'))
-        return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
+        flash("Download will commence shortly")
+        return redirect(url_for('download'))
+    return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
-    @app.route('/download', methods=['GET', 'POST'])
+@app.route('/download', methods=['GET', 'POST'])
+def download(apps, glassory = dictionary):
+    # Gets data from selectForm and grabs corresponding image objects into a list
+    # filesToDownload is a list of strings of image ids
+    root_directory = '/download'
+    dirctory = '/download/clientImages.tar'
+    filename = 'clientImages.tar'
 
-    def download(self,apps, glassory = self.dictionary):
-    # Modified by Haonan Chen
-    # Date: 24.03.2019
-    # Change the download() method in a more reasonable way
-    # @param apps: a list of app names
-    # @param glassory: a dictionary of app v.s. image as parameters
-    # Each app in the list or the (key, value) in glassory are stored as string
-    # Each name of image in the form: (respository : tag)
-        
-        root_directory = '/download'
-        dirctory = '/download/clientImages.tar'
-        filename = 'clientImages.tar'
-
-        tarfile = open(dirctory, 'wb')
-        for app in apps:
-            images = glassory[app]
-            for image in images:
-                if image not in self.imagesDownloaded:
-                    self.imagesDownloaded.append(image)
-                    strs = image.split(":")
-                    self.client.pull(strs[0], tag=strs[1])
+    tarfile = open(dirctory, 'wb')
+    for app in apps:
+        images = glassory[app]
+        for image in images:
+            if image not in imagesDownloaded:
+                imagesDownloaded.append(image)
+                strs = image.split(":")
+                client.pull(strs[0], tag=strs[1])
 
                 # we can use get_image directly to get the image with a specific version
-                tarball = self.client.get_image(image)
+            tarball = client.get_image(image)
 
-                for chunk in tarball:
+            for chunk in tarball:
 
-                    tarfile.write(chunk)
+                tarfile.write(chunk)
 
 
-        tarfile.close()
+    tarfile.close()
+    # GZip compresses tar file
+    with open (directory, 'rb') as f_in, gzip.open(directory+'.gz', 'wb') as f_out:
 
-        # Modified From version of Jackson Qiu
-        # Convert from tar file to gzip file with a smaller size
-        
-        with open (directory, 'rb') as f_in, gzip.open(directory+'.gz', 'wb') as f_out:
-
-            shutil.copyfileobj(f_in, f_out)
+        shutil.copyfileobj(f_in, f_out)
 
         
 
-        f_in.close()
-        f_out.close()
+    f_in.close()
+    f_out.close()
+    # Ensures that existings tar files do not get lumped into new download request
+    # os.remove should be compatible with all OS
+    os.remdir(directory)
+    os.remdir(directory+'.gz')
 
-        # a secure way to quickly expose static files from an upload folder or something similar.
-        # more efficient than send_file()
-        attachment = send_from_directory(root_directory,
-                               filename+'.gz', as_attachment=True)
-    
-        # Ensures that existings tar files do not get lumped into new download request
-        # os.remove should be compatible with all OS
-        os.remdir(directory)
-        os.remdir(directory+'.gz')
+    return attachment
 
 
-        return attachment
-    
-    # Created by Haonan Chen
-    # Date: 24.03.2019
-    # A prototype of REST Web API for transfer the apps list input from frontend to backend
-    @app.route('/download', methods=['GET', 'POST'])
-    def get_input_list():
-        if 'apps' in request.args:
-            urls = flask_s3.url_for('download', apps = request.args['apps'])
-            return urls
-        else:
-            return "Empty or Wrong apps list"
+@app.route('/download', methods=['GET', 'POST'])
+def get_input_list():
+    if 'apps' in request.args:
+        return download(request.args['apps'])
+    else:
+        return "Empty or Wrong apps list"
+
 
 
 
