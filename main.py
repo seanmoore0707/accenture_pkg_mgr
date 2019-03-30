@@ -29,6 +29,7 @@ app.config.from_object("config")
 bootstrap = Bootstrap(app)
 client = from_env()
 s3 = boto3.client("s3", aws_access_key_id=S3_KEY, aws_secret_access_key=S3_SECRET)
+client = APIClient(base_url='unix://var/run/docker.sock')
 
 # Dictionary that maps the name of the app (key) to a list of required images' names (value)
 # Customise for each use case
@@ -78,7 +79,7 @@ def download():
     # Saves the images into a tar file
     tarfile = open(filename, 'wb')
     for app in apps:
-        images = glassory[app]
+        images = dictionary[app]
         for image in images:
             if image not in imagesDownloaded:
                 imagesDownloaded.append(image)
