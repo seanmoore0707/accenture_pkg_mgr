@@ -73,7 +73,7 @@ def index():
 def download():
     # Gets data from selectForm and grabs corresponding image objects into a list
     # filesToDownload is a list of strings of image ids
-    filesToDownload = session.get('filesToDownload')
+    apps = session.get('filesToDownload')
     filename = 'clientImages.tar'
     # Saves the images into a tar file
     tarfile = open(filename, 'wb')
