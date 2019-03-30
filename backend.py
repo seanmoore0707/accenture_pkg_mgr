@@ -75,11 +75,11 @@ def download():
     dirctory = '/download/clientImages.tar'
     filename = 'clientImages.tar'
 
-    tarfile = open(dirctory, 'wb')
+    tarfile = open(filename, 'wb')
     for app in apps:
         images = glassory[app]
         for image in images:
-            if image not in imagesDownloaded:
+            if image ndirctoryot in imagesDownloaded:
                 imagesDownloaded.append(image)
                 strs = image.split(":")
                 client.pull(strs[0], tag=strs[1])
