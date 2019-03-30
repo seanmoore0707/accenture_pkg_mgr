@@ -75,7 +75,7 @@ def index():
     return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/upload_file_to_s3', methods=['GET', 'POST'])
 def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = "application/tar"):
 
     """
@@ -90,8 +90,8 @@ def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = 
             bucket_name,
             file.filename,
             ExtraArgs={
-                "ACL": acl
-                "ContentType": contentType
+                "ACL": acl,
+                "ContentType": contentType,
                 "ContentEncoding": "gzip"
             }
         )
