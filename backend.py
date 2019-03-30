@@ -99,7 +99,7 @@ def download():
         shutil.copyfileobj(f_in, f_out)
 
         
-
+    attachment = send_file(filename+'.gz')
     f_in.close()
     f_out.close()
     # Ensures that existings tar files do not get lumped into new download request
@@ -108,6 +108,7 @@ def download():
     os.remove(filename+'.gz')
 
     return attachment
+
 
 
 
