@@ -71,7 +71,7 @@ def download():
     apps = session.get('filesToDownload')
     glassory = dictionary
 
-    root_directory = '/download'
+
     dirctory = '/download/clientImages.tar'
     filename = 'clientImages.tar'
 
@@ -94,7 +94,7 @@ def download():
 
     tarfile.close()
     # GZip compresses tar file
-    with open (directory, 'rb') as f_in, gzip.open(directory+'.gz', 'wb') as f_out:
+    with open (filename, 'rb') as f_in, gzip.open(filename+'.gz', 'wb') as f_out:
 
         shutil.copyfileobj(f_in, f_out)
 
