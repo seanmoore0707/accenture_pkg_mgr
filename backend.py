@@ -72,10 +72,10 @@ def download():
     glassory = dictionary
 
 
-    dirctory = '/download/clientImages.tar'
+
     filename = 'clientImages.tar'
 
-    tarfile = open(dirctory, 'wb')
+    tarfile = open(filename, 'wb')
     for app in apps:
         images = glassory[app]
         for image in images:
@@ -104,8 +104,8 @@ def download():
     f_out.close()
     # Ensures that existings tar files do not get lumped into new download request
     # os.remove should be compatible with all OS
-    os.remdir(directory)
-    os.remdir(directory+'.gz')
+    os.remove(filename)
+    os.remove(filename+'.gz')
 
     return attachment
 
