@@ -76,20 +76,21 @@ def index():
 
 
 @app.route('/upload_file_to_s3', methods=['GET', 'POST'])
-def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = "application/tar"):
-
+def upload_file_to_s3(bucket_name = app.config["S3_BUCKET"], acl="public-read", contentType = "application/tar"):
+          
     """
     Docs: http://boto3.readthedocs.io/en/latest/guide/s3.html
     """
     apps = session.get('filesToDownload')
     file = download(apps)
+    filename = 'download/clientImages.tar'
     print("hello*******************")
     try:
 
         s3.upload_fileobj(
             file,
             bucket_name,
-            file.filename,
+            filename,
             ExtraArgs={
                 "ACL": acl,
                 "ContentType": contentType,
@@ -101,7 +102,7 @@ def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = 
         print("Something Happened: ", e)
         return e
 
-    return "{}{}".format(app.config["S3_LOCATION"], file.filename)
+    return "{}{}".format(app.config["S3_LOCATION"], filename)
 
 @app.route('/download', methods=['GET', 'POST'])
 def download(apps):
