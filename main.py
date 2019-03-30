@@ -41,6 +41,7 @@ dictionary =  { 'app1' : ['alpine:3.9.2'],
                 'app6' : ['alpine:3.6'] }
 
 imagesDownloaded=[]
+filename = 'clientImages.tar'
 
 
 class SelectForm(FlaskForm):
@@ -76,11 +77,11 @@ def download():
     # Gets data from selectForm and grabs apps selected into a list
     # filesToDownload is a list of strings of app names
     apps = session.get('filesToDownload')
-    filename = 'clientImages.tar'
+
     # Saves the images into a tar file
     tarfile = open(filename, 'wb')
-    for app in apps:
-        images = dictionary[app]
+    for selected_app in apps:
+        images = dictionary[selected_app]
         for image in images:
             if image not in imagesDownloaded:
                 imagesDownloaded.append(image)
@@ -116,14 +117,13 @@ def download():
     
     return str(output)
 
-def upload_file_to_s3(file, acl="public-read"):
+def upload_file_to_s3(file):
     try:
         s3.upload_fileobj(
             file,
             S3_BUCKET,
-            S3_KEY,
+            filename,
             ExtraArgs={
-                "ACL": acl,
                 "ContentType": 'application/tar',
                 'ContentEncoding' : 'gzip'
             }
@@ -132,7 +132,7 @@ def upload_file_to_s3(file, acl="public-read"):
         # This is a catch all exception, edit this part to fit your needs.
         print("Something Happened: ", e)
         return e
-    return "{}{}".format(S3_LOCATION, S3_KEY)
+    return "{}{}".format(S3_LOCATION, filename)
 
 if __name__ == "__main__":
     app.run()
