@@ -44,7 +44,9 @@ imagesDownloaded=[]
 
 
 class SelectForm(FlaskForm):
-    # Choices are in (value, key) pairs, ideally value would Image ID and key would be Name
+    # Choices are in (value1, value2) pairs, 
+    # the first value in the tuple is the one put into a list and stored in form.filesToDownload.data
+    # the second value in the tuple is the one displayed on the web form
     filesToDownload = SelectMultipleField("Choose docker images to download",
                                 choices=[('app1','app1'), ('app2','app2'),('app3','app3'),('app4','app4'),('app5','app5'),('app6','app6')],
                                 validators=[DataRequired()])
@@ -65,15 +67,14 @@ def index():
     form = SelectForm()
     if form.validate_on_submit():
         session['filesToDownload'] = form.filesToDownload.data
-        # Bug: Flash not displaying as wanted, currently only displaying after refresh
         flash("Download will commence shortly")
         return redirect(url_for('download'))
     return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
 @app.route('/download', methods=['GET', 'POST'])
 def download():
-    # Gets data from selectForm and grabs corresponding image objects into a list
-    # filesToDownload is a list of strings of image ids
+    # Gets data from selectForm and grabs apps selected into a list
+    # filesToDownload is a list of strings of app names
     apps = session.get('filesToDownload')
     filename = 'clientImages.tar'
     # Saves the images into a tar file
@@ -86,7 +87,7 @@ def download():
                 strs = image.split(":")
                 client.pull(strs[0], tag=strs[1])
 
-                # we can use get_image directly to get the image with a specific version
+            # we can use get_image directly to get the image with a specific version
             tarball = client.get_image(image)
 
             for chunk in tarball:
@@ -96,6 +97,7 @@ def download():
 
     tarfile.close()
     # GZip compresses tar file
+    # Convert tar file to a file-like object for uploading to S3
     compressedFile = BytesIO()
     with open(filename, 'rb') as f_in:
         with gzip.GzipFile(fileobj=compressedFile, mode="wb") as f_out:
@@ -107,6 +109,7 @@ def download():
 
     f_in.close()
     f_out.close()
+    
     # Ensures that existings tar files do not get lumped into new download request
     # os.remove should be compatible with all OS
     os.remove(filename)
