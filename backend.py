@@ -32,13 +32,15 @@ dictionary =  { 'app1' : ['alpine:3.9.2'],
                 'app5' : ['alpine:3.6.5'],
                 'app6' : ['alpine:3.6'] }
 imagesDownloaded=[]
-client = docker.APIClient(base_url='unix://var/run/docker.sock')
+client = APIClient(base_url='unix://var/run/docker.sock')
 
 
 class SelectForm(FlaskForm):
-    # Choices are in (value, key) pairs, ideally value would Image ID and key would be Name
+    # Choices are in (value1, value2) pairs, 
+    # the first value in the tuple is the one put into a list and stored in form.filesToDownload.data
+    # the second value in the tuple is the one displayed on the web form
     filesToDownload = SelectMultipleField("Choose docker images to download",
-                                choices=[app1, app2, app3, app4, app5, app6],
+                                choices=[('app1','app1'), ('app2','app2'),('app3','app3'),('app4','app4'),('app5','app5'),('app6','app6')],
                                 validators=[DataRequired()])
     submit = SubmitField('Submit')
 
@@ -63,9 +65,12 @@ def index():
     return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
 @app.route('/download', methods=['GET', 'POST'])
-def download(apps = session.get('filesToDownload'), glassory = dictionary):
+def download():
     # Gets data from selectForm and grabs corresponding image objects into a list
     # filesToDownload is a list of strings of image ids
+    apps = session.get('filesToDownload')
+    glassory = dictionary
+
     root_directory = '/download'
     dirctory = '/download/clientImages.tar'
     filename = 'clientImages.tar'
@@ -105,12 +110,12 @@ def download(apps = session.get('filesToDownload'), glassory = dictionary):
     return attachment
 
 
-@app.route('/download', methods=['GET', 'POST'])
-def get_input_list():
-    if 'apps' in request.args:
-        return download(request.args['apps'])
-    else:
-        return "Empty or Wrong apps list"
+#@app.route('/download', methods=['GET', 'POST'])
+#def get_input_list():
+#    if 'apps' in request.args:
+#        return download(request.args['apps'])
+#    else:
+#        return "Empty or Wrong apps list"
 
 
 
