@@ -76,7 +76,7 @@ def index():
 
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read"):
+def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = "application/tar"):
 
     """
     Docs: http://boto3.readthedocs.io/en/latest/guide/s3.html
@@ -91,7 +91,8 @@ def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read"):
             file.filename,
             ExtraArgs={
                 "ACL": acl
-                "ContentType": file.content_type
+                "ContentType": contentType
+                "ContentEncoding": "gzip"
             }
         )
 
@@ -129,18 +130,18 @@ def download(apps):
 
     tarfile.close()
     # GZip compresses tar file
-    with open (filename, 'rb') as f_in, gzip.open(filename+'.gz', 'wb') as f_out:
+#    with open (filename, 'rb') as f_in, gzip.open(filename+'.gz', 'wb') as f_out:
 
-        shutil.copyfileobj(f_in, f_out)
+#        shutil.copyfileobj(f_in, f_out)
 
         
-    attachment = send_file(filename+'.gz')
-    f_in.close()
-    f_out.close()
+    attachment = send_file(filename)
+#    f_in.close()
+#    f_out.close()
     # Ensures that existings tar files do not get lumped into new download request
     # os.remove should be compatible with all OS
     os.remove(filename)
-    os.remove(filename+'.gz')
+#    os.remove(filename+'.gz')
 
     return attachment
 
