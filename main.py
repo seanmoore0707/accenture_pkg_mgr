@@ -11,6 +11,7 @@ import tarfile
 import gzip
 import shutil
 import boto3, botocore
+from botocore.client import Config
 from config import S3_KEY, S3_SECRET, S3_BUCKET, S3_LOCATION
 from werkzeug.utils import secure_filename
 
@@ -28,7 +29,7 @@ app = Flask(__name__)
 app.config.from_object("config")
 bootstrap = Bootstrap(app)
 client = from_env()
-s3 = boto3.client("s3", aws_access_key_id=S3_KEY, aws_secret_access_key=S3_SECRET)
+s3 = boto3.client("s3", aws_access_key_id=S3_KEY, aws_secret_access_key=S3_SECRET, config=Config(signature_version='s3v4'))
 client = APIClient(base_url='unix://var/run/docker.sock')
 
 # Dictionary that maps the name of the app (key) to a list of required images' names (value)
@@ -118,11 +119,13 @@ def download():
     return str(output)
 
 def upload_file_to_s3(file):
+
+    fileName = filename + '.gz'
     try:
         s3.upload_fileobj(
             file,
             S3_BUCKET,
-            filename,
+            fileName,
             ExtraArgs={
                 "ContentType": 'application/tar',
                 'ContentEncoding' : 'gzip'
@@ -134,7 +137,7 @@ def upload_file_to_s3(file):
                                         ClientMethod='get_object',
                                         Params={
                                             'Bucket': S3_BUCKET,
-                                            'Key': fileName+ '.gz'
+                                            'Key': fileName
                                         }
                                     )
     except Exception as e:
