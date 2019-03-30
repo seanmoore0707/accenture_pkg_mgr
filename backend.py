@@ -83,6 +83,7 @@ def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = 
     """
     apps = session.get('filesToDownload')
     file = download(apps)
+    print("hello*******************")
     try:
 
         s3.upload_fileobj(
