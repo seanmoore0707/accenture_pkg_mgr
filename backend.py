@@ -76,33 +76,33 @@ def index():
 
 
 @app.route('/upload_file_to_s3', methods=['GET', 'POST'])
-def upload_file_to_s3(bucket_name = app.config["S3_BUCKET"], acl="public-read", contentType = "application/tar"):
+def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read", contentType = "application/tar"):
           
     """
     Docs: http://boto3.readthedocs.io/en/latest/guide/s3.html
     """
     apps = session.get('filesToDownload')
     file = download(apps)
-    filename = 'download/clientImages.tar'
-    print("hello*******************")
+#    filename = 'download/clientImages.tar'
+    
     try:
 
         s3.upload_fileobj(
             file,
             bucket_name,
-            filename,
+            S3_KEY,
             ExtraArgs={
                 "ACL": acl,
                 "ContentType": contentType,
                 "ContentEncoding": "gzip"
             }
         )
-
+    print("hello*******************")
     except Exception as e:
         print("Something Happened: ", e)
         return e
 
-    return "{}{}".format(app.config["S3_LOCATION"], filename)
+    return str("{}{}".format(app.config["S3_LOCATION"], S3_KEY))
 
 @app.route('/download', methods=['GET', 'POST'])
 def download(apps):
@@ -136,10 +136,16 @@ def download(apps):
 
 #        shutil.copyfileobj(f_in, f_out)
 
-        
-    attachment = send_file(filename)
-#    f_in.close()
-#    f_out.close()
+    compressedFile = BytesIO()
+    with open(filename, 'rb') as f_in:
+        with gzip.GzipFile(fileobj = compressedFile, mode = 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+
+    compressedFile.seek(0)
+
+    attachment = compressedFile
+    f_in.close()
+    f_out.close()
     # Ensures that existings tar files do not get lumped into new download request
     # os.remove should be compatible with all OS
     os.remove(filename)
