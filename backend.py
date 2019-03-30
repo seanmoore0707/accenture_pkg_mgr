@@ -9,6 +9,10 @@ from docker import *
 import tarfile
 import gzip
 import shutil
+import boto3, botocore
+from config import S3_KEY, S3_SECRET, S3_BUCKET
+
+
 
 # Uses wtfforms, bootstrap, jinja
 # python3 -m venv venv
@@ -22,6 +26,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'rb4(X~f`Y%#"bF8P'
 bootstrap = Bootstrap(app)
 client = from_env()
+
+s3 = boto3.client(
+   "s3",
+   aws_access_key_id=S3_KEY,
+   aws_secret_access_key=S3_SECRET
+)
 
 # Dictionary that maps the name of the app (key) to a list of required images' names (value)
 # Customise for each use case
@@ -61,17 +71,42 @@ def index():
         session['filesToDownload'] = form.filesToDownload.data
         # Bug: Flash not displaying as wanted, currently only displaying after refresh
         flash("Download will commence shortly")
-        return redirect(url_for('download'))
+        return redirect(url_for('upload_file_to_s3'))
     return render_template('index.html', form=form, filesToDownload=session.get('filesToDownload'))
 
+
+@app.route('/', methods=['GET', 'POST'])
+def upload_file_to_s3(bucket_name = S3_BUCKET, acl="public-read"):
+
+    """
+    Docs: http://boto3.readthedocs.io/en/latest/guide/s3.html
+    """
+    apps = session.get('filesToDownload')
+    file = download(apps)
+    try:
+
+        s3.upload_fileobj(
+            file,
+            bucket_name,
+            file.filename,
+            ExtraArgs={
+                "ACL": acl
+                "ContentType": file.content_type
+            }
+        )
+
+    except Exception as e:
+        print("Something Happened: ", e)
+        return e
+
+    return "{}{}".format(app.config["S3_LOCATION"], file.filename)
+
 @app.route('/download', methods=['GET', 'POST'])
-def download():
+def download(apps):
     # Gets data from selectForm and grabs corresponding image objects into a list
     # filesToDownload is a list of strings of image ids
-    apps = session.get('filesToDownload')
+    
     glassory = dictionary
-
-
 
     filename = 'clientImages.tar'
 
