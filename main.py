@@ -128,11 +128,21 @@ def upload_file_to_s3(file):
                 'ContentEncoding' : 'gzip'
             }
         )
+    
+    # generate the presigned url
+        url = s3.generate_presigned_url(
+                                        ClientMethod='get_object',
+                                        Params={
+                                            'Bucket': S3_BUCKET,
+                                            'Key': fileName+ '.gz'
+                                        }
+                                    )
     except Exception as e:
         # This is a catch all exception, edit this part to fit your needs.
         print("Something Happened: ", e)
         return e
-    return "{}{}".format(S3_LOCATION, filename)
+    
+    return url
 
 if __name__ == "__main__":
     app.run()
